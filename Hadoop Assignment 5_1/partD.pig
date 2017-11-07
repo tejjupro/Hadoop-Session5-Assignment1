@@ -1,0 +1,12 @@
+emp = LOAD '/home/acadgild/pig/employee_details.txt' USING PigStorage(',') AS (emp_id:int, emp_name:chararray, emp_salary:int);
+emp_expenses = LOAD '/home/acadgild/pig/employee_expenses.txt' AS (emp_id:int, expenses:int);
+joined_data = join emp by emp_id , emp_expenses by emp_id;
+sorted_joined_data_with_expense = order joined_data by expenses desc,emp_name;
+employee = FOREACH sorted_joined_data_with_expense generate emp::emp_id,emp_name,emp_expenses::expenses;
+employee_grp = GROUP employee by $0;
+emp_ttl_expense = FOREACH employee_grp generate group as emp::emp_id,employee.emp_name as name,SUM(employee.expenses) as expense;
+emp_ttl_expense_details = FOREACH emp_ttl_expense generate emp_id, FLATTEN(name), expense;
+emp_ttl_expense_details_unique = DISTINCT emp_ttl_expense_details;
+emp_expense_desc = ORDER emp_ttl_expense_details_unique by expense desc;
+emp_in_expense = FOREACH emp_expense_desc generate $0, $1;
+store emp_in_expense into '/home/acadgild/Desktop/5.1/output/partD';
